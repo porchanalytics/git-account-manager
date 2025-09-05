@@ -59,17 +59,45 @@ gam_default_branch_or_main() {
 gam_parse_repo_arg() { # input → prints "OWNER REPO"
   # Accepts: OWNER/REPO, https://github.com/OWNER/REPO(.git), git@github.com:OWNER/REPO(.git)
   local in="$1"
+  [[ -z "${in}" ]] && { gam_die "Empty repository argument"; return 1; }
+  
+  # Remove .git suffix if present
   in="${in%.git}"
-  in="${in#https://github.com/}"
-  in="${in#http://github.com/}"
-  in="${in#git@github.com:}"
-  # also allow host aliases: git@anything:owner/repo
-  in="${in#git@*/}"
+  
+  # Handle various URL formats
+  case "${in}" in
+    https://github.com/*/*|http://github.com/*/*)
+      in="${in#*github.com/}"
+      ;;
+    git@github.com:*/*)
+      in="${in#git@github.com:}"
+      ;;
+    git@*:*/*)
+      # Handle custom SSH host aliases
+      in="${in#git@*:}"
+      ;;
+    ssh://git@*/*)
+      in="${in#ssh://git@*/}"
+      in="${in#*/}"  # Skip hostname
+      ;;
+  esac
+  
+  # Validate format
   if [[ "${in}" != */* ]]; then
-    gam_die "Expected OWNER/REPO but got: ${in}"
+    gam_die "Expected OWNER/REPO format but got: ${in}"
     return 1
   fi
-  printf '%s %s\n' "${in%/*}" "${in##*/}"
+  
+  local owner="${in%/*}"
+  local repo="${in##*/}"
+  
+  # Validate non-empty
+  if [[ -z "${owner}" || -z "${repo}" ]]; then
+    gam_die "Invalid repository format: owner or repo is empty"
+    return 1
+  fi
+  
+  printf '%s %s\n' "${owner}" "${repo}"
 }
 
 gam_repo_has_commit() {
@@ -106,11 +134,32 @@ gam_current_remote_host() {
   local url; url="$(git remote get-url origin 2>/dev/null || true)"
   [[ -z "${url}" ]] && return 1
   case "${url}" in
-    git@*:*/*) printf '%s\n' "${url#git@}";;
-    ssh://git@*/*) printf '%s\n' "${url#ssh://git@}";;
-    https://*/*) printf 'github.com\n';; # https won't expose alias
-    *) printf '%s\n' "${url}";;
-  esac | cut -d: -f1 | cut -d/ -f1
+    git@*:*/*)
+      # Extract just the host part between @ and :
+      local host="${url#git@}"
+      host="${host%%:*}"
+      printf '%s\n' "${host}"
+      ;;
+    ssh://git@*/*)
+      # Extract host from ssh://git@host/path
+      local host="${url#ssh://git@}"
+      host="${host%%/*}"
+      printf '%s\n' "${host}"
+      ;;
+    https://*/*)
+      # Extract host from https://host/path
+      local host="${url#https://}"
+      host="${host%%/*}"
+      printf '%s\n' "${host}"
+      ;;
+    http://*/*)
+      # Extract host from http://host/path
+      local host="${url#http://}"
+      host="${host%%/*}"
+      printf '%s\n' "${host}"
+      ;;
+    *) return 1;;
+  esac
 }
 
 gam_current_email() { git config --get user.email 2>/dev/null || true; }
@@ -123,21 +172,43 @@ gam_require_gh() {
 gam_extract_owner_repo_from_remote() {
   local url; url="$(git remote get-url origin 2>/dev/null || true)"
   [[ -z "${url}" ]] && return 1
-  # Normalize URL to owner/repo without .git
+  
+  # Remove .git suffix if present
+  url="${url%.git}"
+  
   local owner repo
   case "${url}" in
     git@*:*/*)
-      owner="${url#*:}"; owner="${owner%%/*}"
-      repo="${url##*/}";;
+      # git@host:owner/repo format
+      local path="${url#*:}"
+      owner="${path%%/*}"
+      repo="${path#*/}"
+      ;;
     ssh://git@*/*)
-      owner="${url#ssh://git@}"; owner="${owner#*/}"; owner="${owner%%/*}"
-      repo="${url##*/}";;
-    http*://github.com/*/*)
-      owner="${url#*github.com/}"; owner="${owner%%/*}"
-      repo="${url##*/}";;
+      # ssh://git@host/owner/repo format
+      local path="${url#ssh://git@*/}"
+      path="${path#*/}"  # Skip hostname
+      owner="${path%%/*}"
+      repo="${path#*/}"
+      ;;
+    https://github.com/*/*|http://github.com/*/*)
+      # https://github.com/owner/repo format
+      local path="${url#*github.com/}"
+      owner="${path%%/*}"
+      repo="${path#*/}"
+      ;;
+    https://*//*|http://*/*)
+      # Generic https://host/owner/repo format
+      local path="${url#*://}"
+      path="${path#*/}"  # Skip hostname
+      owner="${path%%/*}"
+      repo="${path#*/}"
+      ;;
     *) return 1;;
   esac
-  repo="${repo%.git}"
+  
+  # Validate extracted values
+  [[ -z "${owner}" || -z "${repo}" ]] && return 1
   printf '%s %s\n' "${owner}" "${repo}"
 }
 

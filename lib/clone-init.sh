@@ -41,7 +41,9 @@ git-clone() {
   local url="git@${host}:${owner}/${repo}.git"
   local dest="${target:-${repo}}"
   printf 'Running: git clone %q %q\n' "${url}" "${dest}"
-  git clone "${url}" "${dest}"
+  if ! git clone "${url}" "${dest}"; then
+    gam_die "Failed to clone repository from ${url}"
+  fi
   gam_log_audit "clone account=${account} url=${url} dest=${dest}"
 }
 
