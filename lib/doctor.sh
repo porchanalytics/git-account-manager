@@ -22,10 +22,12 @@ git-doctor() {
       missing_ssh_hosts+=("${host}")
       if [[ "${auto_fix}" = "1" || "${GAM_AUTO_FIX:-1}" = "1" ]]; then
         printf '%s%s Auto-fixing: setting up SSH host aliases...%s\n' "${C_BLUE}" "${SYM_ARROW}" "${C_RESET}"
-        git-setup-ssh-hosts 2>/dev/null && echo "✓ SSH host aliases configured" || {
+        if git-setup-ssh-hosts 2>/dev/null; then
+          echo "✓ SSH host aliases configured"
+        else
           echo "✗ Failed to setup SSH host aliases automatically"
           ok=1
-        }
+        fi
         break
       else
         echo "✗ Missing SSH host alias: ${host}  (fix: run 'git-setup-ssh-hosts')"
@@ -51,10 +53,12 @@ git-doctor() {
   if ! gam__ensure_log_dir 2>/dev/null; then
     if [[ "${auto_fix}" = "1" || "${GAM_AUTO_FIX:-1}" = "1" ]]; then
       printf '%s%s Auto-fixing: creating audit log directory...%s\n' "${C_BLUE}" "${SYM_ARROW}" "${C_RESET}"
-      mkdir -p "$(dirname "${GAM_LOG_FILE}")" && echo "✓ Audit log directory created" || {
+      if mkdir -p "$(dirname "${GAM_LOG_FILE}")"; then
+        echo "✓ Audit log directory created"
+      else
         echo "✗ Failed to create audit log directory"
         ok=1
-      }
+      fi
     fi
   fi
   
@@ -71,10 +75,12 @@ git-doctor() {
     if [[ -z "${branch}" ]]; then
       if [[ "${auto_fix}" = "1" ]]; then
         printf '%s%s Auto-fixing: creating main branch...%s\n' "${C_BLUE}" "${SYM_ARROW}" "${C_RESET}"
-        git checkout -b main && git commit --allow-empty -m 'init' && echo "✓ Main branch created" || {
+        if git checkout -b main && git commit --allow-empty -m 'init'; then
+          echo "✓ Main branch created"
+        else
           echo "✗ Failed to create main branch automatically"
           ok=1
-        }
+        fi
       else
         echo "✗ No default branch; create one: git checkout -b main && git commit --allow-empty -m 'init'"
         ok=1
@@ -88,10 +94,12 @@ git-doctor() {
     else
       if [[ "${auto_fix}" = "1" ]]; then
         printf '%s%s Auto-fixing: creating initial commit...%s\n' "${C_BLUE}" "${SYM_ARROW}" "${C_RESET}"
-        git add -A && git commit -m 'Initial commit' && echo "✓ Initial commit created" || {
+        if git add -A && git commit -m 'Initial commit'; then
+          echo "✓ Initial commit created"
+        else
           echo "✗ Failed to create initial commit automatically"
           ok=1
-        }
+        fi
       else
         echo "✗ No commits; create: git add -A && git commit -m 'Initial commit'"
         ok=1

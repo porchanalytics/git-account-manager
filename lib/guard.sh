@@ -49,11 +49,13 @@ gam_check_identity_vs_remote() {
           # Extract owner from git@github.com:owner/repo.git or https://github.com/owner/repo.git
           local remote_url; remote_url="$(git remote get-url origin 2>/dev/null || true)"
           local owner=""
-          # Extract owner using sed for reliability
+          # Extract owner using parameter expansion
           if [[ "${remote_url}" =~ git@github\.com: ]]; then
-            owner=$(echo "${remote_url}" | sed 's|git@github\.com:\([^/]*\)/.*|\1|')
+            owner="${remote_url#*:}"
+            owner="${owner%%/*}"
           elif [[ "${remote_url}" =~ github\.com/ ]]; then
-            owner=$(echo "${remote_url}" | sed 's|.*github\.com/\([^/]*\)/.*|\1|')
+            owner="${remote_url#*github.com/}"
+            owner="${owner%%/*}"
           fi
           
           # Match owner to configured accounts

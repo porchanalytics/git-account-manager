@@ -19,8 +19,10 @@ git-whoami() {
   
   # Local config (if in git repo)
   if [[ $in_git_repo -eq 1 ]]; then
-    local local_name="$(git config --get user.name 2>/dev/null || echo "Not set")"
-    local local_email="$(git config --get user.email 2>/dev/null || echo "Not set")"
+    local local_name
+    local local_email
+    local_name="$(git config --get user.name 2>/dev/null || echo "Not set")"
+    local_email="$(git config --get user.email 2>/dev/null || echo "Not set")"
     
     # Determine account type based on email
     local account_type="unknown"
@@ -46,8 +48,10 @@ git-whoami() {
   fi
   
   # Global config
-  local global_name="$(git config --global --get user.name 2>/dev/null || echo "Not set")"
-  local global_email="$(git config --global --get user.email 2>/dev/null || echo "Not set")"
+  local global_name
+  local global_email
+  global_name="$(git config --global --get user.name 2>/dev/null || echo "Not set")"
+  global_email="$(git config --global --get user.email 2>/dev/null || echo "Not set")"
   
   local global_account_type="unknown"
   if [[ "$global_email" == "${GAM_PERSONAL_EMAIL:-}" ]]; then
@@ -181,6 +185,7 @@ git-list-ssh-keys() {
   local business_key="${GAM_BUSINESS_SSH_KEY:-}"
   
   while IFS= read -r line; do
+    # shellcheck disable=SC2034  # fingerprint used for future enhancement
     local fingerprint="${line%% *}"
     local key_path="${line##* }"
     local account_label=""

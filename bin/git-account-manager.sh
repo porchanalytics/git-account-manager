@@ -54,4 +54,4 @@ fi
 :
 
 # Optional convenience alias to run the repo's doctor script directly
-git-validate() { git-doctor; }
+git-validate() { git-doctor "$@"; }

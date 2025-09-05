@@ -62,8 +62,10 @@ inject_block() { # inject_block <rcfile>
   {
     printf '\n%s\n' "${BLOCK_BEGIN}"
     printf 'GAM_ROOT=%q\n' "${REPO_ROOT}"
+    # shellcheck disable=SC2016  # Variables should expand at runtime, not install time
     printf 'if [ -f "$GAM_ROOT/bin/git-account-manager.sh" ]; then\n'
     printf '  # shellcheck disable=SC1091\n'
+    # shellcheck disable=SC2016  # Variables should expand at runtime, not install time
     printf '  . "$GAM_ROOT/bin/git-account-manager.sh"\n'
     printf 'fi\n'
     printf '%s\n' "${BLOCK_END}"
