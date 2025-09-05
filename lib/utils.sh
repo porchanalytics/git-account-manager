@@ -12,8 +12,10 @@ fi
 gam_cmd_exists() { command -v "$1" >/dev/null 2>&1; }
 
 # XDG paths
+# shellcheck disable=SC2034  # Variables used in other files
 GAM_CONFIG_FILE_DEFAULT="${XDG_CONFIG_HOME:-$HOME/.config}/git-account-manager/config.sh"
 GAM_STATE_DIR_DEFAULT="${XDG_STATE_HOME:-$HOME/.local/state}/git-account-manager"
+# shellcheck disable=SC2034  # Variables used in other files via GAM_DATA_DIR_FALLBACK
 GAM_DATA_DIR_FALLBACK="${XDG_DATA_HOME:-$HOME/.local/share}/git-account-manager"
 GAM_LOG_FILE="${GAM_LOG_FILE:-${GAM_STATE_DIR_DEFAULT}/audit.log}"
 GAM_AUDIT="${GAM_AUDIT:-1}"
